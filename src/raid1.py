@@ -1,4 +1,4 @@
-from raid_base import RAIDBase
+from src.raid_base import RAIDBase
 
 
 class RAID1(RAIDBase):

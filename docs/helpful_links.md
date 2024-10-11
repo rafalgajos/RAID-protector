@@ -1,0 +1,1 @@
+https://centrumodzyskiwaniadanych.pl/blog/204-macierze-raid-informacje

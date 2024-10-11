@@ -1,4 +1,4 @@
-from disk import Disk
+from src.disk import Disk
 
 
 class RAIDBase:
