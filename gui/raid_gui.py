@@ -22,7 +22,8 @@ class RAIDMonitorApp:
 
         # Dropdown for selecting RAID type
         self.raid_type_var = tk.StringVar(value="RAID0")
-        self.raid_type_menu = tk.OptionMenu(master, self.raid_type_var, "RAID0", "RAID1", "RAID3", command=self.select_raid)
+        self.raid_type_menu = tk.OptionMenu(master, self.raid_type_var, "RAID0", "RAID1", "RAID3",
+                                            command=self.select_raid)
         self.raid_type_menu.grid(row=0, column=0)
 
         # Entry for input data
@@ -66,11 +67,13 @@ class RAIDMonitorApp:
         self.sector_fault_button = tk.Button(master, text="Simulate Sector Fault", command=self.simulate_sector_fault)
         self.sector_fault_button.grid(row=8, column=1)
 
-        self.communication_fault_button = tk.Button(master, text="Simulate Communication Fault", command=self.simulate_communication_fault)
+        self.communication_fault_button = tk.Button(master, text="Simulate Communication Fault",
+                                                    command=self.simulate_communication_fault)
         self.communication_fault_button.grid(row=8, column=2)
 
         # Buttons for additional functionalities
-        self.performance_test_button = tk.Button(master, text="Run Performance Test", command=lambda: self.run_performance_test(10000, 128))
+        self.performance_test_button = tk.Button(master, text="Run Performance Test",
+                                                 command=lambda: self.run_performance_test(10000, 128))
         self.performance_test_button.grid(row=9, column=0)
 
         self.export_status_button = tk.Button(master, text="Export RAID Status", command=self.export_raid_status)
@@ -122,36 +125,39 @@ class RAIDMonitorApp:
         """Simulate a sector fault."""
         fault_info = self.data_entry.get().split(',')
 
-        # Sprawdzamy, czy podano poprawny format danych (disk_id, sector_id)
+        # Check for correct data format (disk_id, sector_id)
         if len(fault_info) == 2 and all(x.strip().isdigit() for x in fault_info):
             disk_id, sector_id = map(int, fault_info)
 
-            # Sprawdzamy, czy numer dysku mieści się w zakresie dostępnych dysków
+            # Check that the drive number is within the range of available drives
             if 0 <= disk_id < len(self.current_raid.disks):
-                # Sprawdzamy, czy numer sektora jest poprawny
+                # Check that the sector number is correct
                 if 0 <= sector_id < self.current_raid.disk_size:
                     self.current_raid.simulate_sector_fault(disk_id, sector_id)
                     messagebox.showinfo("Sector Fault", f"Simulated fault at Disk {disk_id}, Sector {sector_id}")
                     self.update_state()
                 else:
-                    messagebox.showerror("Error", f"Invalid sector ID. Please enter a sector ID between 0 and {self.current_raid.disk_size - 1}.")
+                    messagebox.showerror("Error", f"Invalid sector ID. Please enter a sector ID between 0 "
+                                                  f"and {self.current_raid.disk_size - 1}.")
             else:
-                messagebox.showerror("Error", f"Invalid disk ID. Please enter a disk ID between 0 and {len(self.current_raid.disks) - 1}.")
+                messagebox.showerror("Error", f"Invalid disk ID. Please enter a disk ID between 0 "
+                                              f"and {len(self.current_raid.disks) - 1}.")
         else:
             messagebox.showerror("Input Error", "Please enter data in the format 'disk_id,sector_id' (e.g., '0,1').")
 
     def simulate_communication_fault(self):
         """Simulate a communication fault on a specific disk."""
-        disk_id = self.data_entry.get().strip()  # Pobierz i usuń zbędne spacje
+        disk_id = self.data_entry.get().strip()  # Download and remove unnecessary spaces
         if disk_id.isdigit():
             disk_id = int(disk_id)
-            # Sprawdzamy, czy numer dysku mieści się w zakresie dostępnych dysków
+            # Check that the drive number is within the range of available drives
             if 0 <= disk_id < len(self.current_raid.disks):
                 self.current_raid.simulate_communication_fault(disk_id)
                 messagebox.showinfo("Communication Fault", f"Simulated communication fault on Disk {disk_id}")
                 self.update_state()
             else:
-                messagebox.showerror("Error", f"Invalid disk ID. Please enter a disk ID between 0 and {len(self.current_raid.disks) - 1}.")
+                messagebox.showerror("Error", f"Invalid disk ID. Please enter a disk ID between 0 "
+                                              f"and {len(self.current_raid.disks) - 1}.")
         else:
             messagebox.showerror("Input Error", "Please enter a valid disk ID (a number).")
 
@@ -180,7 +186,8 @@ class RAIDMonitorApp:
             # Update text field showing detailed disk data
             self.state_text.delete(1.0, tk.END)
             for i, disk in enumerate(self.current_raid.disks):
-                self.state_text.insert(tk.END, f"Disk {i} [Status: {'Available' if disk.available else 'Faulty'}]: {disk.data}\n")
+                self.state_text.insert(tk.END, f"Disk {i} [Status: {'Available' if disk.available else 'Faulty'}]:"
+                                               f" {disk.data}\n")
 
     def run_performance_test(self, num_operations, data_size):
         """Run a performance test by writing and reading a large amount of data."""
