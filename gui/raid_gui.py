@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox
 from tkinter.ttk import Progressbar
+import time
+import json
 from src.raid0 import RAID0
 from src.raid1 import RAID1
 from src.raid3 import RAID3
@@ -67,6 +69,16 @@ class RAIDMonitorApp:
         self.communication_fault_button = tk.Button(master, text="Simulate Communication Fault", command=self.simulate_communication_fault)
         self.communication_fault_button.grid(row=8, column=2)
 
+        # Buttons for additional functionalities
+        self.performance_test_button = tk.Button(master, text="Run Performance Test", command=lambda: self.run_performance_test(10000, 128))
+        self.performance_test_button.grid(row=9, column=0)
+
+        self.export_status_button = tk.Button(master, text="Export RAID Status", command=self.export_raid_status)
+        self.export_status_button.grid(row=9, column=1)
+
+        self.reset_button = tk.Button(master, text="Reset RAID", command=self.reset_raid)
+        self.reset_button.grid(row=9, column=2)
+
         self.update_state()
 
     def select_raid(self, raid_type):
@@ -122,11 +134,9 @@ class RAIDMonitorApp:
                     messagebox.showinfo("Sector Fault", f"Simulated fault at Disk {disk_id}, Sector {sector_id}")
                     self.update_state()
                 else:
-                    messagebox.showerror("Error",
-                                         f"Invalid sector ID. Please enter a sector ID between 0 and {self.current_raid.disk_size - 1}.")
+                    messagebox.showerror("Error", f"Invalid sector ID. Please enter a sector ID between 0 and {self.current_raid.disk_size - 1}.")
             else:
-                messagebox.showerror("Error",
-                                     f"Invalid disk ID. Please enter a disk ID between 0 and {len(self.current_raid.disks) - 1}.")
+                messagebox.showerror("Error", f"Invalid disk ID. Please enter a disk ID between 0 and {len(self.current_raid.disks) - 1}.")
         else:
             messagebox.showerror("Input Error", "Please enter data in the format 'disk_id,sector_id' (e.g., '0,1').")
 
@@ -141,8 +151,7 @@ class RAIDMonitorApp:
                 messagebox.showinfo("Communication Fault", f"Simulated communication fault on Disk {disk_id}")
                 self.update_state()
             else:
-                messagebox.showerror("Error",
-                                     f"Invalid disk ID. Please enter a disk ID between 0 and {len(self.current_raid.disks) - 1}.")
+                messagebox.showerror("Error", f"Invalid disk ID. Please enter a disk ID between 0 and {len(self.current_raid.disks) - 1}.")
         else:
             messagebox.showerror("Input Error", "Please enter a valid disk ID (a number).")
 
@@ -172,6 +181,81 @@ class RAIDMonitorApp:
             self.state_text.delete(1.0, tk.END)
             for i, disk in enumerate(self.current_raid.disks):
                 self.state_text.insert(tk.END, f"Disk {i} [Status: {'Available' if disk.available else 'Faulty'}]: {disk.data}\n")
+
+    def run_performance_test(self, num_operations, data_size):
+        """Run a performance test by writing and reading a large amount of data."""
+        if not self.current_raid:
+            messagebox.showerror("Error", "No RAID array selected.")
+            return
+
+        test_data = "A" * data_size  # Test data to write
+
+        # Measure write performance
+        start_time = time.perf_counter()
+        for i in range(num_operations):
+            self.current_raid.write(test_data)
+        end_time = time.perf_counter()
+        write_time = end_time - start_time
+
+        # Measure read performance
+        start_time = time.perf_counter()
+        for i in range(num_operations):
+            self.current_raid.read(i % len(test_data))  # Ensure we are reading valid sectors
+        end_time = time.perf_counter()
+        read_time = end_time - start_time
+
+        # Log performance results
+        report = {
+            "RAID Type": self.raid_type_var.get(),
+            "Number of Disks": self.current_raid.num_disks,
+            "Disk Size": self.current_raid.disk_size,
+            "Number of Operations": num_operations,
+            "Data Size (bytes)": data_size,
+            "Write Time (seconds)": write_time,
+            "Read Time (seconds)": read_time
+        }
+
+        with open("performance_report.json", "w") as file:
+            json.dump(report, file, indent=4)
+
+        messagebox.showinfo("Test Completed", f"Write time: {write_time:.4f}s\nRead time: {read_time:.4f}s")
+
+    def export_raid_status(self):
+        """Export current RAID status to a JSON file."""
+        if not self.current_raid:
+            messagebox.showerror("Error", "No RAID array selected.")
+            return
+
+        raid_status = {
+            "RAID Type": self.raid_type_var.get(),
+            "Disks": []
+        }
+
+        for i, disk in enumerate(self.current_raid.disks):
+            disk_info = {
+                "Disk ID": i,
+                "Available": disk.available,
+                "Faulty Sectors": disk.faulty_sectors,
+                "Communication Fault": disk.communication_fault,
+                "Used Sectors": [sector for sector in disk.data if sector != '']
+            }
+            raid_status["Disks"].append(disk_info)
+
+        with open("raid_status.json", "w") as file:
+            json.dump(raid_status, file, indent=4)
+
+        messagebox.showinfo("Export Completed", "RAID status has been exported to 'raid_status.json'.")
+
+    def reset_raid(self):
+        """Reset the RAID array to the initial state."""
+        if self.current_raid:
+            for disk in self.current_raid.disks:
+                disk.data = [''] * disk.size
+                disk.available = True
+                disk.faulty_sectors = []
+                disk.communication_fault = False
+            self.update_state()
+            messagebox.showinfo("RAID Reset", "RAID array has been reset to the initial state.")
 
 
 if __name__ == "__main__":
