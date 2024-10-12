@@ -35,42 +35,41 @@ class RAID3(RAIDBase):
         disk_index = index % (self.num_disks - 1)  # We calculate the index of the data drive
         sector_index = index // (self.num_disks - 1)
 
-        # Checking if a sector on the data drive is damaged before any operation
+        # Check if the sector on the main data disk is faulty
         if sector_index in self.disks[disk_index].faulty_sectors:
             print(f"RAID3 Read Error: Sector {sector_index} is faulty on disk {disk_index}.")
-            return None  # Returns None immediately if sector is corrupted
-
-        # Check if the working disk is available
-        if not self.disks[disk_index].available:
-            print(f"Disk {disk_index} unavailable. Attempting to reconstruct data using parity...")
-
-            # Reconstruction of data using XOR from remaining working discs
-            reconstructed_value = 0
-            for i in range(self.num_disks - 1):
-                if i != disk_index:
-                    # Check for sector failures on other drives
-                    if sector_index in self.disks[i].faulty_sectors:
-                        print(f"RAID3 Read Error: Sector {sector_index} is faulty on disk {i}.")
-                        return None  # Reading failed due to bad sector
-                    value = self.disks[i].read(sector_index)
-                    if value is None:
-                        return None  # If other disks have a problem, reading fails
-                    reconstructed_value ^= ord(value)
-
-            # Reading parity and including it in the reconstruction
-            parity_value = self.disks[-1].read(sector_index)
-            if parity_value is None:
-                return None  # Parity unavailable, reading failed
-            reconstructed_value ^= ord(parity_value)
-
-            return chr(reconstructed_value)
-
-        # Normal reading from the working disk
-        value = self.disks[disk_index].read(sector_index)
-
-        # If reading from a normal disk returns None or the sector is corrupted, we return None
-        if value is None or sector_index in self.disks[disk_index].faulty_sectors:
-            print(f"RAID3 Read Error: Failed to read sector {sector_index} on disk {disk_index}.")
             return None
 
+        # Check if the main disk is available
+        if not self.disks[disk_index].available or self.disks[disk_index].communication_fault:
+            print(f"Disk {disk_index} unavailable. Attempting to reconstruct data using parity...")
+
+            # Reconstruction of data using XOR from remaining working disks and parity
+            reconstructed_value = 0
+            for i in range(self.num_disks - 1):  # Loop through all data disks
+                if i != disk_index:
+                    # Check if the other disk is functional
+                    if self.disks[i].available and not self.disks[i].communication_fault:
+                        value = self.disks[i].read(sector_index)
+                        if value is None:
+                            print(f"RAID3 Read Error: Sector {sector_index} on disk {i} is faulty or unreadable.")
+                            return None
+                        reconstructed_value ^= ord(value)  # XOR to reconstruct data
+                    else:
+                        print(f"RAID3 Read Error: Disk {i} unavailable for reconstruction.")
+                        return None
+
+            # Now we XOR with parity disk value to finalize reconstruction
+            parity_value = self.disks[-1].read(sector_index)
+            if parity_value is None:
+                print(f"RAID3 Read Error: Parity disk sector {sector_index} is unreadable.")
+                return None
+            reconstructed_value ^= ord(parity_value)
+
+            return chr(reconstructed_value)  # Return reconstructed data
+
+        # If the disk is available and working, just read normally
+        value = self.disks[disk_index].read(sector_index)
+        if value is None:
+            print(f"RAID3 Read Error: Failed to read sector {sector_index} on disk {disk_index}.")
         return value
