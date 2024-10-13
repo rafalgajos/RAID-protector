@@ -51,7 +51,7 @@ class RAID3(RAIDBase):
                     # Check if the other disk is functional
                     if self.disks[i].available and not self.disks[i].communication_fault:
                         value = self.disks[i].read(sector_index)
-                        if value is None:
+                        if value is None or value == '':  # Check if the value is empty or None
                             print(f"RAID3 Read Error: Sector {sector_index} on disk {i} is faulty or unreadable.")
                             return None
                         reconstructed_value ^= ord(value)  # XOR to reconstruct data
@@ -61,7 +61,7 @@ class RAID3(RAIDBase):
 
             # Now we XOR with parity disk value to finalize reconstruction
             parity_value = self.disks[-1].read(sector_index)
-            if parity_value is None:
+            if parity_value is None or parity_value == '':  # Check if parity value is empty or None
                 print(f"RAID3 Read Error: Parity disk sector {sector_index} is unreadable.")
                 return None
             reconstructed_value ^= ord(parity_value)
@@ -70,6 +70,8 @@ class RAID3(RAIDBase):
 
         # If the disk is available and working, just read normally
         value = self.disks[disk_index].read(sector_index)
-        if value is None:
+        if value is None or value == '':  # Check if value is None or empty
             print(f"RAID3 Read Error: Failed to read sector {sector_index} on disk {disk_index}.")
+            return None
         return value
+
