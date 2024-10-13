@@ -61,4 +61,7 @@ RAID-protector is a simulation project for RAID0, RAID1, and RAID3 arrays with f
 - **Rafał Gajos**
 
 ## License <a name="license"></a>
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is protected under copyright law.  
+Copyright 2024 Natalia Brzezińska, Rafał Gajos  
+All Rights Reserved.  
+See the [LICENSE](LICENSE) file for more details.
